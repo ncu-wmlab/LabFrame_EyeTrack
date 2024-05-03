@@ -18,7 +18,11 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
 
     public void ManagerInit()
     {
-        
+#if USE_PICO
+
+#else
+        Debug.LogWarning("[EyeManager] Unsupported Platform or you haven't set platform in LabFrame2023 Menu!!");
+#endif        
     }
 
     public IEnumerator ManagerDispose()
@@ -92,8 +96,6 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
             else
                 _focusData = null;
         }
-#else
-        Debug.LogWarning("[EyeManager] Unsupported Platform or you haven't set platform in LabFrame2023 Menu!!");
 #endif
     }
 
