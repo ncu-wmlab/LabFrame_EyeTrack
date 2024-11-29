@@ -5,6 +5,8 @@ using LabFrame2023;
 
 #if USE_PICO
 using Unity.XR.PXR;
+#elif USE_VIVE_ANDROID
+using Wave.Essence.Eye;
 #endif
 
 public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
@@ -20,6 +22,11 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
     {
 #if USE_PICO
 
+#elif USE_VIVE_ANDROID
+        if(EyeManager.Instance != null)
+        {
+            EyeManager.Instance.EnableEyeTracking = true;
+        }
 #else
         Debug.LogWarning("[EyeManager] Unsupported Platform or you haven't set platform in LabFrame2023 Menu!!");
 #endif        
@@ -96,8 +103,91 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
             else
                 _focusData = null;
         }
+#elif USE_VIVE_ANDROID
+        bool result = true;
+
+        result &= EyeManager.Instance.GetLeftEyeOrigin(out var LeftEyePosition);//左眼位置
+        result &= EyeManager.Instance.GetRightEyeOrigin(out var RightEyePosition);//右眼位置
+        result &= EyeManager.Instance.GetLeftEyePupilDiameter(out var LeftEyePupilDiameter);//左眼瞳孔直徑
+        result &= EyeManager.Instance.GetRightEyePupilDiameter(out var RightEyePupilDiameter);//右眼瞳孔直徑
+        result &= EyeManager.Instance.GetLeftEyeOpenness(out var LeftEyeOpenness);//左眼睜開程度
+        result &= EyeManager.Instance.GetRightEyeOpenness(out var RightEyeOpenness);//右眼睜開程度
+        result &= EyeManager.Instance.GetLeftEyeDirectionNormalized(out var LeftGazeDirection);//左眼方向
+        result &= EyeManager.Instance.GetRightEyeDirectionNormalized(out var RightGazeDirection);//右眼方向
+        result &= EyeManager.Instance.GetLeftEyePupilPositionInSensorArea(out var LeftPupilPositionInSensorArea);//左眼瞳孔在感測區域的位置
+        result &= EyeManager.Instance.GetRightEyePupilPositionInSensorArea(out var RightPupilPositionInSensorArea);//右眼瞳孔在感測區域的位置
+
+        result &= EyeManager.Instance.GetCombinedEyeOrigin(out var CombinedEyeOrigin);//合併眼位置
+        result &= EyeManager.Instance.GetCombindedEyeDirectionNormalized(out var CombinedDirection);//合併眼方向
+
+        if (result)
+        {
+            // _eyeLeftRightFocus3 = new EyeLeftRightFocus3
+            // {
+            //     LeftOrigin = LeftEyePosition,
+            //     RightOrigin = RightEyePosition,
+            //     LeftEyePupilDiameter = LeftEyePupilDiameter,
+            //     RightEyePupilDiameter = RightEyePupilDiameter,
+            //     LeftEyeOpenness = LeftEyeOpenness,
+            //     RightEyeOpenness = RightEyeOpenness,
+            //     LeftDirection = LeftGazeDirection,
+            //     RightDirection = RightGazeDirection,
+            
+            // };
+
+            // _eyeCombinedFocus3 = new EyeCombinedFocus3
+            // {
+            //     CombinedEyeOrigin = CombinedEyeOrigin,
+            //     CombinedDirection = CombinedDirection,
+            // };
+
+            _leftRightData = new EyeLeftRightData{
+                LeftOrigin = LeftEyePosition,
+                RightOrigin = RightEyePosition,
+                LeftEyePupilDiameter = LeftEyePupilDiameter,
+                RightEyePupilDiameter = RightEyePupilDiameter,
+                LeftEyeOpenness = LeftEyeOpenness,
+                RightEyeOpenness = RightEyeOpenness,
+                LeftDirection = LeftGazeDirection,
+                RightDirection = RightGazeDirection,
+            };
+
+            _combinedData = new EyeCombinedData{
+                CombineEyeGazePoint = CombinedEyeOrigin,
+                CombineEyeGazeVector = CombinedDirection,
+            };
+
+            if(_doWriteLabData)
+            {
+                LabDataManager.Instance.WriteData(_leftRightData);
+                LabDataManager.Instance.WriteData(_combinedData);
+            }
+
+            // Focus data
+            Ray ray = new Ray(CombinedEyeOrigin, CombinedDirection);   
+            Transform mainCamTransform = Camera.main.transform;            
+            Ray rayGlobal = new Ray(mainCamTransform.position, mainCamTransform.TransformDirection(ray.direction));
+            // Physics.Raycast(rayGlobal, out var hit, maxDistance, layerMask);  
+            // Physics.SphereCast(rayGlobal, radius, out var hit, maxDistance, layerMask);            
+            if(Physics.Raycast(rayGlobal, out var hit))
+            {
+                _focusData = new EyeFocusData
+                {
+                    FocusName = hit.collider.gameObject.name,
+                    FocusPoint = hit.point,
+                    FocusNormal = hit.normal,
+                    FocusDistance = hit.distance,
+                };
+
+                if(_doWriteLabData)
+                    LabDataManager.Instance.WriteData(_focusData);
+            }
+            else
+                _focusData = null;
+        }
 #endif
     }
+
 
     #region Public Methods
     /// <summary>
@@ -134,6 +224,6 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
     public EyeFocusData GetEyeFocusData()
     {
         return _focusData;
-    }    
+    }
     #endregion
 }
