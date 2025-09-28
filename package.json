@@ -1,6 +1,6 @@
 {
   "name": "com.xrlab.labframe_eyetrack",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "displayName": "Lab Frame 2023 - Eye Tracking",
   "description": "Eyetrack Support for LabFrame2023.\nNote: supports PICO & Vive Focus 3 or newer headset",
   "unity": "2020.3",
