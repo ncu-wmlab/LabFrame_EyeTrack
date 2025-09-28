@@ -1,6 +1,6 @@
 {
   "name": "com.xrlab.labframe_eyetrack",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "displayName": "Lab Frame 2023 - Eye Tracking",
   "description": "Eyetrack Support for LabFrame2023.\nNote: supports PICO & Vive Focus 3 or newer headset",
   "unity": "2020.3",
@@ -10,7 +10,8 @@
   "licensesUrl": "https://youtu.be/dQw4w9WgXcQ",
   "dependencies": {
     "com.xrlab.labframe": "0.0.8",
-    "com.htc.upm.wave.essence": "6.2.0-r9"
+    "com.htc.upm.wave.essence": "6.2.0-r9",
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
   },
   "author": {
     "name": "NCU wmlab & xrlab",
