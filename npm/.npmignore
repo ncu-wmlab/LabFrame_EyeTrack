@@ -1,0 +1,18 @@
+# Unity meta files (如果不想包含)
+*.meta
+
+# 開發相關
+.git
+.github
+.gitignore
+node_modules/
+npm-debug.log
+
+# 測試和文檔
+Tests/
+Documentation~/
+
+# 編輯器設定
+.vscode/
+.idea/
+*.sublime-*

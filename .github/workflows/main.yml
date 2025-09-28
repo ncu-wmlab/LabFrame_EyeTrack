@@ -11,17 +11,24 @@ jobs:
    runs-on: ubuntu-latest
    steps:
    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-   - uses: actions/checkout@v2
+   - uses: actions/checkout@v4
    # Install Node.js, with the version 12 and using the registry URL of npm, this could be changed to a custom registry or the GitHub registry.
-   - uses: actions/setup-node@v1
+   - uses: actions/setup-node@v4
      with:
-       node-version: 12
+       node-version: 20
        registry-url: https://registry.npmjs.org/
- 
+   - name: navigate to npm directory
+     run: cd npm
+   - name: install dependencies
+     working-directory: ./npm
+     run: |
+       echo "No Node.js dependencies to install"
    # Command to install the package dependencies
-   - run: yarn install
+  #  - run: yarn install
    
    # Publish to npm
-   - run: npm publish --access public
+   - name: Publish to npm
+     working-directory: ./npm
+     run: npm publish --access public
      env:
        NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
