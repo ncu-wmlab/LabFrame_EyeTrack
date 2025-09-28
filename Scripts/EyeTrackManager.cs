@@ -23,6 +23,7 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
 #if USE_PICO
 
 #elif USE_VIVE_ANDROID
+        // 這裡要開啟眼動追蹤
         if(EyeManager.Instance != null)
         {
             EyeManager.Instance.EnableEyeTracking = true;
@@ -50,12 +51,12 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
         bool result = true;
 
         // // Pico 眼動目前只有這六個資料，其他都收不到
-        result &= PXR_EyeTracking.GetLeftEyeGazeOpenness(out var leftEyeOpenness);
-        result &= PXR_EyeTracking.GetLeftEyePositionGuide(out var leftEyePositionGuide);
-        result &= PXR_EyeTracking.GetRightEyeGazeOpenness(out var rightEyeOpenness);
-        result &= PXR_EyeTracking.GetRightEyePositionGuide(out var rightEyePositionGuide);
-        result &= PXR_EyeTracking.GetCombineEyeGazePoint(out var combineEyeGazePoint);
-        result &= PXR_EyeTracking.GetCombineEyeGazeVector(out var combineEyeGazeVector);
+        result &= PXR_EyeTracking.GetLeftEyeGazeOpenness(out var leftEyeOpenness);//左眼睜開程度
+        result &= PXR_EyeTracking.GetLeftEyePositionGuide(out var leftEyePositionGuide);//左眼位置
+        result &= PXR_EyeTracking.GetRightEyeGazeOpenness(out var rightEyeOpenness);//右眼睜開程度
+        result &= PXR_EyeTracking.GetRightEyePositionGuide(out var rightEyePositionGuide);//右眼位置
+        result &= PXR_EyeTracking.GetCombineEyeGazePoint(out var combineEyeGazePoint);//合併眼位置
+        result &= PXR_EyeTracking.GetCombineEyeGazeVector(out var combineEyeGazeVector);//合併眼方向
 
         if (result)
         {
