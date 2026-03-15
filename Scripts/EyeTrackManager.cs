@@ -1,16 +1,16 @@
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using LabFrame2023;
 
 #if USE_PICO
 using Unity.XR.PXR;
-#elif USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
-using Wave.Essence.Eye;
 #endif
 
 public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
-{    
+{
     protected bool _doWriteLabData = false;
     protected string _currentEyeTrackTag = "eyetrack";
 
@@ -18,20 +18,34 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
     protected EyeCombinedData _combinedData = null;
     protected EyeFocusData _focusData = null;
 
+#if USE_VIVE_ANDROID
+    // Keep the Wave dependency optional so this package can still compile
+    // before the host project installs Wave Essence.
+    private const string WaveEyeManagerTypeName = "Wave.Essence.Eye.EyeManager";
+    private const string WaveEyeManagerAssemblyQualifiedName = "Wave.Essence.Eye.EyeManager, Wave.Essence";
+
+    private bool _waveReflectionInitialized = false;
+    private bool _waveTypeMissingLogged = false;
+    private bool _waveInstanceMissingLogged = false;
+
+    private Type _waveEyeManagerType = null;
+    private PropertyInfo _waveInstanceProperty = null;
+    private PropertyInfo _waveEnableEyeTrackingProperty = null;
+    private readonly Dictionary<string, MethodInfo> _waveMethodCache = new Dictionary<string, MethodInfo>();
+#endif
 
     public void ManagerInit()
     {
 #if USE_PICO
 
-#elif USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
-        // 這裡要開啟眼動追蹤
-        if(EyeManager.Instance != null)
+#elif USE_VIVE_ANDROID
+        if (!TrySetWaveEnableEyeTracking(true))
         {
-            EyeManager.Instance.EnableEyeTracking = true;
+            Debug.LogWarning("[EyeTrackManager] USE_VIVE_ANDROID is enabled, but Wave EyeManager is not available yet.");
         }
 #else
         Debug.LogWarning("[EyeManager] Unsupported Platform or you haven't set platform in LabFrame2023 Menu!!");
-#endif        
+#endif
     }
 
     public IEnumerator ManagerDispose()
@@ -51,20 +65,16 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
 #if USE_PICO
         bool result = true;
 
-        // // Pico 眼動目前只有這六個資料，其他都收不到
-        result &= PXR_EyeTracking.GetLeftEyeGazeOpenness(out var leftEyeOpenness);//左眼睜開程度
-        result &= PXR_EyeTracking.GetLeftEyePositionGuide(out var leftEyePositionGuide);//左眼位置
-        result &= PXR_EyeTracking.GetRightEyeGazeOpenness(out var rightEyeOpenness);//右眼睜開程度
-        result &= PXR_EyeTracking.GetRightEyePositionGuide(out var rightEyePositionGuide);//右眼位置
-        result &= PXR_EyeTracking.GetCombineEyeGazePoint(out var combineEyeGazePoint);//合併眼位置
-        result &= PXR_EyeTracking.GetCombineEyeGazeVector(out var combineEyeGazeVector);//合併眼方向
-
+        result &= PXR_EyeTracking.GetLeftEyeGazeOpenness(out var leftEyeOpenness);
+        result &= PXR_EyeTracking.GetLeftEyePositionGuide(out var leftEyePositionGuide);
+        result &= PXR_EyeTracking.GetRightEyeGazeOpenness(out var rightEyeOpenness);
+        result &= PXR_EyeTracking.GetRightEyePositionGuide(out var rightEyePositionGuide);
+        result &= PXR_EyeTracking.GetCombineEyeGazePoint(out var combineEyeGazePoint);
+        result &= PXR_EyeTracking.GetCombineEyeGazeVector(out var combineEyeGazeVector);
         if (result)
         {
-            // LR, combine data
             _leftRightData = new EyeLeftRightData
             {
-               
                 LeftEyeOpenness = leftEyeOpenness,
                 LeftEyePositionGuide = leftEyePositionGuide,
                 RightEyeOpenness = rightEyeOpenness,
@@ -74,22 +84,18 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
             {
                 CombineEyeGazeVector = combineEyeGazeVector,
                 CombineEyeGazePoint = combineEyeGazePoint,
-            };   
+            };
 
-            // Write Lab Data
-            if(_doWriteLabData)
+            if (_doWriteLabData)
             {
                 LabDataManager.Instance.WriteData(_leftRightData, _currentEyeTrackTag);
                 LabDataManager.Instance.WriteData(_combinedData, _currentEyeTrackTag);
-            }         
+            }
 
-            // Focus data
-            Ray ray = new Ray(combineEyeGazePoint, combineEyeGazeVector);   
-            Transform mainCamTransform = Camera.main.transform;            
+            Ray ray = new Ray(combineEyeGazePoint, combineEyeGazeVector);
+            Transform mainCamTransform = Camera.main.transform;
             Ray rayGlobal = new Ray(mainCamTransform.position, mainCamTransform.TransformDirection(ray.direction));
-            // Physics.Raycast(rayGlobal, out var hit, maxDistance, layerMask);  
-            // Physics.SphereCast(rayGlobal, radius, out var hit, maxDistance, layerMask);            
-            if(Physics.Raycast(rayGlobal, out var hit))
+            if (Physics.Raycast(rayGlobal, out var hit))
             {
                 _focusData = new EyeFocusData
                 {
@@ -99,79 +105,61 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
                     FocusDistance = hit.distance,
                 };
 
-                if(_doWriteLabData)
+                if (_doWriteLabData)
+                {
                     LabDataManager.Instance.WriteData(_focusData, _currentEyeTrackTag);
+                }
             }
             else
+            {
                 _focusData = null;
+            }
         }
-#elif USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
+#elif USE_VIVE_ANDROID
         bool result = true;
 
-        result &= EyeManager.Instance.GetLeftEyeOrigin(out var LeftEyePosition);//左眼位置
-        result &= EyeManager.Instance.GetRightEyeOrigin(out var RightEyePosition);//右眼位置
-        result &= EyeManager.Instance.GetLeftEyePupilDiameter(out var LeftEyePupilDiameter);//左眼瞳孔直徑
-        result &= EyeManager.Instance.GetRightEyePupilDiameter(out var RightEyePupilDiameter);//右眼瞳孔直徑
-        result &= EyeManager.Instance.GetLeftEyeOpenness(out var LeftEyeOpenness);//左眼睜開程度
-        result &= EyeManager.Instance.GetRightEyeOpenness(out var RightEyeOpenness);//右眼睜開程度
-        result &= EyeManager.Instance.GetLeftEyeDirectionNormalized(out var LeftGazeDirection);//左眼方向
-        result &= EyeManager.Instance.GetRightEyeDirectionNormalized(out var RightGazeDirection);//右眼方向
-        result &= EyeManager.Instance.GetLeftEyePupilPositionInSensorArea(out var LeftPupilPositionInSensorArea);//左眼瞳孔在感測區域的位置
-        result &= EyeManager.Instance.GetRightEyePupilPositionInSensorArea(out var RightPupilPositionInSensorArea);//右眼瞳孔在感測區域的位置
-
-        result &= EyeManager.Instance.GetCombinedEyeOrigin(out var CombinedEyeOrigin);//合併眼位置
-        result &= EyeManager.Instance.GetCombindedEyeDirectionNormalized(out var CombinedDirection);//合併眼方向
-
+        result &= TryInvokeWaveOutMethod("GetLeftEyeOrigin", Vector3.zero, out var leftEyePosition);
+        result &= TryInvokeWaveOutMethod("GetRightEyeOrigin", Vector3.zero, out var rightEyePosition);
+        result &= TryInvokeWaveOutMethod("GetLeftEyePupilDiameter", 0f, out var leftEyePupilDiameter);
+        result &= TryInvokeWaveOutMethod("GetRightEyePupilDiameter", 0f, out var rightEyePupilDiameter);
+        result &= TryInvokeWaveOutMethod("GetLeftEyeOpenness", 0f, out var leftEyeOpenness);
+        result &= TryInvokeWaveOutMethod("GetRightEyeOpenness", 0f, out var rightEyeOpenness);
+        result &= TryInvokeWaveOutMethod("GetLeftEyeDirectionNormalized", Vector3.zero, out var leftGazeDirection);
+        result &= TryInvokeWaveOutMethod("GetRightEyeDirectionNormalized", Vector3.zero, out var rightGazeDirection);
+        result &= TryInvokeWaveOutMethod("GetLeftEyePupilPositionInSensorArea", Vector2.zero, out var leftPupilPositionInSensorArea);
+        result &= TryInvokeWaveOutMethod("GetRightEyePupilPositionInSensorArea", Vector2.zero, out var rightPupilPositionInSensorArea);
+        result &= TryInvokeWaveOutMethod("GetCombinedEyeOrigin", Vector3.zero, out var combinedEyeOrigin);
+        result &= TryInvokeWaveOutMethod("GetCombindedEyeDirectionNormalized", Vector3.zero, out var combinedDirection);
         if (result)
         {
-            // _eyeLeftRightFocus3 = new EyeLeftRightFocus3
-            // {
-            //     LeftOrigin = LeftEyePosition,
-            //     RightOrigin = RightEyePosition,
-            //     LeftEyePupilDiameter = LeftEyePupilDiameter,
-            //     RightEyePupilDiameter = RightEyePupilDiameter,
-            //     LeftEyeOpenness = LeftEyeOpenness,
-            //     RightEyeOpenness = RightEyeOpenness,
-            //     LeftDirection = LeftGazeDirection,
-            //     RightDirection = RightGazeDirection,
-            
-            // };
-
-            // _eyeCombinedFocus3 = new EyeCombinedFocus3
-            // {
-            //     CombinedEyeOrigin = CombinedEyeOrigin,
-            //     CombinedDirection = CombinedDirection,
-            // };
-
-            _leftRightData = new EyeLeftRightData{
-                LeftOrigin = LeftEyePosition,
-                RightOrigin = RightEyePosition,
-                LeftEyePupilDiameter = LeftEyePupilDiameter,
-                RightEyePupilDiameter = RightEyePupilDiameter,
-                LeftEyeOpenness = LeftEyeOpenness,
-                RightEyeOpenness = RightEyeOpenness,
-                LeftDirection = LeftGazeDirection,
-                RightDirection = RightGazeDirection,
+            _leftRightData = new EyeLeftRightData
+            {
+                LeftOrigin = leftEyePosition,
+                RightOrigin = rightEyePosition,
+                LeftEyePupilDiameter = leftEyePupilDiameter,
+                RightEyePupilDiameter = rightEyePupilDiameter,
+                LeftEyeOpenness = leftEyeOpenness,
+                RightEyeOpenness = rightEyeOpenness,
+                LeftDirection = leftGazeDirection,
+                RightDirection = rightGazeDirection,
             };
 
-            _combinedData = new EyeCombinedData{
-                CombineEyeGazePoint = CombinedEyeOrigin,
-                CombineEyeGazeVector = CombinedDirection,
+            _combinedData = new EyeCombinedData
+            {
+                CombineEyeGazePoint = combinedEyeOrigin,
+                CombineEyeGazeVector = combinedDirection,
             };
 
-            if(_doWriteLabData)
+            if (_doWriteLabData)
             {
                 LabDataManager.Instance.WriteData(_leftRightData, _currentEyeTrackTag);
                 LabDataManager.Instance.WriteData(_combinedData, _currentEyeTrackTag);
             }
 
-            // Focus data
-            Ray ray = new Ray(CombinedEyeOrigin, CombinedDirection);   
-            Transform mainCamTransform = Camera.main.transform;            
+            Ray ray = new Ray(combinedEyeOrigin, combinedDirection);
+            Transform mainCamTransform = Camera.main.transform;
             Ray rayGlobal = new Ray(mainCamTransform.position, mainCamTransform.TransformDirection(ray.direction));
-            // Physics.Raycast(rayGlobal, out var hit, maxDistance, layerMask);  
-            // Physics.SphereCast(rayGlobal, radius, out var hit, maxDistance, layerMask);            
-            if(Physics.Raycast(rayGlobal, out var hit))
+            if (Physics.Raycast(rayGlobal, out var hit))
             {
                 _focusData = new EyeFocusData
                 {
@@ -181,22 +169,150 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
                     FocusDistance = hit.distance,
                 };
 
-                if(_doWriteLabData)
+                if (_doWriteLabData)
+                {
                     LabDataManager.Instance.WriteData(_focusData, _currentEyeTrackTag);
+                }
             }
             else
+            {
                 _focusData = null;
+            }
         }
 #endif
     }
 
+#if USE_VIVE_ANDROID
+    private void EnsureWaveReflection()
+    {
+        if (_waveReflectionInitialized)
+        {
+            return;
+        }
+
+        _waveReflectionInitialized = true;
+        _waveEyeManagerType = Type.GetType(WaveEyeManagerAssemblyQualifiedName);
+
+        if (_waveEyeManagerType == null)
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            for (int i = 0; i < assemblies.Length; i++)
+            {
+                _waveEyeManagerType = assemblies[i].GetType(WaveEyeManagerTypeName);
+                if (_waveEyeManagerType != null)
+                {
+                    break;
+                }
+            }
+        }
+
+        if (_waveEyeManagerType == null)
+        {
+            if (!_waveTypeMissingLogged)
+            {
+                _waveTypeMissingLogged = true;
+                Debug.LogWarning("[EyeTrackManager] Wave Essence assembly was not found. Vive eye tracking will stay disabled until the package is available.");
+            }
+            return;
+        }
+
+        _waveInstanceProperty = _waveEyeManagerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+        _waveEnableEyeTrackingProperty = _waveEyeManagerType.GetProperty("EnableEyeTracking", BindingFlags.Public | BindingFlags.Instance);
+    }
+
+    private object GetWaveEyeManagerInstance()
+    {
+        EnsureWaveReflection();
+        if (_waveInstanceProperty == null)
+        {
+            return null;
+        }
+
+        var instance = _waveInstanceProperty.GetValue(null, null);
+        if (instance == null)
+        {
+            if (!_waveInstanceMissingLogged)
+            {
+                _waveInstanceMissingLogged = true;
+                Debug.LogWarning("[EyeTrackManager] Wave EyeManager.Instance is null. Add the Wave EyeManager component before using Vive eye tracking.");
+            }
+            return null;
+        }
+
+        _waveInstanceMissingLogged = false;
+        return instance;
+    }
+
+    private MethodInfo GetWaveMethod(string methodName)
+    {
+        EnsureWaveReflection();
+        if (_waveEyeManagerType == null)
+        {
+            return null;
+        }
+
+        if (_waveMethodCache.TryGetValue(methodName, out var cachedMethod))
+        {
+            return cachedMethod;
+        }
+
+        var methods = _waveEyeManagerType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+        for (int i = 0; i < methods.Length; i++)
+        {
+            if (methods[i].Name == methodName && methods[i].GetParameters().Length == 1)
+            {
+                _waveMethodCache[methodName] = methods[i];
+                return methods[i];
+            }
+        }
+
+        return null;
+    }
+
+    private bool TrySetWaveEnableEyeTracking(bool enable)
+    {
+        var instance = GetWaveEyeManagerInstance();
+        if (instance == null || _waveEnableEyeTrackingProperty == null)
+        {
+            return false;
+        }
+
+        _waveEnableEyeTrackingProperty.SetValue(instance, enable, null);
+        return true;
+    }
+
+    private bool TryInvokeWaveOutMethod<T>(string methodName, T defaultValue, out T value)
+    {
+        value = defaultValue;
+
+        var instance = GetWaveEyeManagerInstance();
+        var method = GetWaveMethod(methodName);
+        if (instance == null || method == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var args = new object[] { defaultValue };
+            var invoked = method.Invoke(instance, args);
+
+            if (args[0] is T typedValue)
+            {
+                value = typedValue;
+            }
+
+            return invoked is bool success && success;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[EyeTrackManager] Wave call failed for " + methodName + ": " + ex.Message);
+            return false;
+        }
+    }
+#endif
 
     #region Public Methods
-    /// <summary>
-    /// 是否自動寫入 LabData，請先確認 LabDataManager 已初始化
-    /// </summary>
-    /// <param name="enable"></param>
-    /// <param name="tag">寫入資料的標籤(例如可傳入遊戲階段名稱)</param>
     public void AutoWriteLabData(bool enable = true, string tag = "eyetrack")
     {
         _doWriteLabData = enable;
@@ -206,38 +322,22 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
         }
     }
 
-    /// <summary>
-    /// 動態更改眼動資料寫入的 Tag
-    /// </summary>
-    /// <param name="tag">新的標籤名稱</param>
     public void SetEyeTrackTag(string tag)
     {
         _currentEyeTrackTag = string.IsNullOrEmpty(tag) ? "eyetrack" : tag;
         Debug.Log($"[EyeTrackManager] EyeTrack data tag dynamically changed to: {_currentEyeTrackTag}");
     }
 
-    /// <summary>
-    /// 取得 EyeLeftRightData，可能為 null
-    /// </summary>
-    /// <returns></returns>
     public EyeLeftRightData GetEyeLeftRightData()
     {
         return _leftRightData;
     }
 
-    /// <summary>
-    /// 取得 EyeCombinedData，可能為 null
-    /// </summary>
-    /// <returns></returns>
     public EyeCombinedData GetEyeCombinedData()
     {
         return _combinedData;
     }
 
-    /// <summary>
-    /// 取得 EyeFocusData，可能為 null
-    /// </summary>
-    /// <returns></returns>
     public EyeFocusData GetEyeFocusData()
     {
         return _focusData;

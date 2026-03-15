@@ -11,12 +11,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [
-        {
-            "name": "com.htc.upm.wave.essence",
-            "expression": "*",
-            "define": "LABFRAME_WAVE_ESSENCE"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }

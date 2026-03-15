@@ -25,33 +25,6 @@ public static class RegistryInstaller
     private static readonly Queue<string> installQueue = new Queue<string>();
     private static AddRequest currentRequest;
 
-        [MenuItem("LabFrame2023/Print EyeTrack Wave Status")]
-        public static void PrintEyeTrackWaveStatus()
-        {
-        var buildTargetGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
-        var defineString = PlayerSettings.GetScriptingDefineSymbolsForGroup(buildTargetGroup);
-        var hasUseViveAndroid = HasDefine(defineString, "USE_VIVE_ANDROID");
-
-        var hasWaveDefine = false;
-    #if LABFRAME_WAVE_ESSENCE
-        hasWaveDefine = true;
-    #endif
-
-        var viveBranchCompiled = false;
-    #if USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
-        viveBranchCompiled = true;
-    #endif
-
-        var pkg = UnityEditor.PackageManager.PackageInfo.FindForAssetPath("Packages/com.htc.upm.wave.essence");
-        var pkgInfo = pkg == null ? "not found" : (pkg.name + "@" + pkg.version);
-
-        Debug.Log("[EyeTrackDiag] BuildTargetGroup: " + buildTargetGroup);
-        Debug.Log("[EyeTrackDiag] USE_VIVE_ANDROID: " + hasUseViveAndroid);
-        Debug.Log("[EyeTrackDiag] LABFRAME_WAVE_ESSENCE: " + hasWaveDefine);
-        Debug.Log("[EyeTrackDiag] Vive branch compiled: " + viveBranchCompiled);
-        Debug.Log("[EyeTrackDiag] com.htc.upm.wave.essence: " + pkgInfo);
-        }
-
     [MenuItem("LabFrame2023/Install Vive Wave Support")]
     public static void InstallWaveSupport()
     {
@@ -173,25 +146,6 @@ public static class RegistryInstaller
 
         var nextPackage = installQueue.Dequeue();
         currentRequest = Client.Add(nextPackage);
-    }
-
-    private static bool HasDefine(string defineSymbols, string target)
-    {
-        if (string.IsNullOrEmpty(defineSymbols) || string.IsNullOrEmpty(target))
-        {
-            return false;
-        }
-
-        var symbols = defineSymbols.Split(';');
-        foreach (var symbol in symbols)
-        {
-            if (symbol.Trim() == target)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
 #endif
