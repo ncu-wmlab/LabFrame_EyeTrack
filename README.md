@@ -13,9 +13,9 @@ install Wave support from the Unity menu:
 The installer will:
 
 - Add the VIVE scoped registry (`https://npm-registry.vive.com/`) to `Packages/manifest.json`.
-- Install `com.htc.upm.wave.xrsdk@6.2.0-r9`.
-- Install `com.htc.upm.wave.native@6.2.0-r9`.
-- Install `com.htc.upm.wave.essence@6.2.0-r9`.
+- Install `com.htc.upm.wave.xrsdk@6.2.0-r.9`.
+- Install `com.htc.upm.wave.native@6.2.0-r.9`.
+- Install `com.htc.upm.wave.essence@6.2.0-r.9`.
 
 `USE_VIVE_ANDROID` is enabled automatically through asmdef version defines when
 `com.htc.upm.wave.essence` is present.

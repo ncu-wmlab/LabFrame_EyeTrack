@@ -17,9 +17,9 @@ public static class RegistryInstaller
 
     private static readonly string[] WavePackages =
     {
-        "com.htc.upm.wave.xrsdk@6.2.0-r9",
-        "com.htc.upm.wave.native@6.2.0-r9",
-        "com.htc.upm.wave.essence@6.2.0-r9"
+        "com.htc.upm.wave.xrsdk@6.2.0-r.9",
+        "com.htc.upm.wave.native@6.2.0-r.9",
+        "com.htc.upm.wave.essence@6.2.0-r.9"
     };
 
     private static readonly Queue<string> installQueue = new Queue<string>();
