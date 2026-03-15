@@ -1,6 +1,25 @@
 # Lab Frame 2023 - Ganglion Plugin
 > com.xrlab/labframe_eyetrack
 
+## Vive Wave Setup
+
+This package keeps Wave dependencies optional. If you are targeting Vive Focus devices,
+install Wave support from the Unity menu:
+
+1. Open Unity Editor.
+2. Click `LabFrame2023/Install Vive Wave Support`.
+3. Wait for package installation to finish in Console.
+
+The installer will:
+
+- Add the VIVE scoped registry (`https://npm-registry.vive.com/`) to `Packages/manifest.json`.
+- Install `com.htc.upm.wave.xrsdk@6.2.0-r9`.
+- Install `com.htc.upm.wave.native@6.2.0-r9`.
+- Install `com.htc.upm.wave.essence@6.2.0-r9`.
+
+`USE_VIVE_ANDROID` is enabled automatically through asmdef version defines when
+`com.htc.upm.wave.essence` is present.
+
 ## CHANGELOG
 
 ### 1.0.0
