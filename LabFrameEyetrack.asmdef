@@ -2,9 +2,7 @@
     "name": "LabFrameEyetrack",
     "rootNamespace": "",
     "references": [
-        "GUID:446fbb70571d4224d98108c0517d6b29",
-        "GUID:65a004a26c89ac5468e8d4b4b057f1c8",
-        "GUID:b7c74153ccbcf534aa653a77f62bd182"
+        "GUID:446fbb70571d4224d98108c0517d6b29"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -13,12 +11,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [
-        {
-            "name": "com.htc.upm.wave.essence",
-            "expression": "6.2.0-r9",
-            "define": "USE_VIVE_ANDROID"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }
