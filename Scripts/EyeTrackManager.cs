@@ -12,6 +12,7 @@ using Wave.Essence.Eye;
 public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
 {    
     protected bool _doWriteLabData = false;
+    protected string _currentEyeTrackTag = "eyetrack";
 
     protected EyeLeftRightData _leftRightData = null;
     protected EyeCombinedData _combinedData = null;
@@ -78,8 +79,8 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
             // Write Lab Data
             if(_doWriteLabData)
             {
-                LabDataManager.Instance.WriteData(_leftRightData);
-                LabDataManager.Instance.WriteData(_combinedData);
+                LabDataManager.Instance.WriteData(_leftRightData, _currentEyeTrackTag);
+                LabDataManager.Instance.WriteData(_combinedData, _currentEyeTrackTag);
             }         
 
             // Focus data
@@ -99,7 +100,7 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
                 };
 
                 if(_doWriteLabData)
-                    LabDataManager.Instance.WriteData(_focusData);
+                    LabDataManager.Instance.WriteData(_focusData, _currentEyeTrackTag);
             }
             else
                 _focusData = null;
@@ -160,8 +161,8 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
 
             if(_doWriteLabData)
             {
-                LabDataManager.Instance.WriteData(_leftRightData);
-                LabDataManager.Instance.WriteData(_combinedData);
+                LabDataManager.Instance.WriteData(_leftRightData, _currentEyeTrackTag);
+                LabDataManager.Instance.WriteData(_combinedData, _currentEyeTrackTag);
             }
 
             // Focus data
@@ -181,7 +182,7 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
                 };
 
                 if(_doWriteLabData)
-                    LabDataManager.Instance.WriteData(_focusData);
+                    LabDataManager.Instance.WriteData(_focusData, _currentEyeTrackTag);
             }
             else
                 _focusData = null;
@@ -195,9 +196,24 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
     /// 是否自動寫入 LabData，請先確認 LabDataManager 已初始化
     /// </summary>
     /// <param name="enable"></param>
-    public void AutoWriteLabData(bool enable = true)
+    /// <param name="tag">寫入資料的標籤(例如可傳入遊戲階段名稱)</param>
+    public void AutoWriteLabData(bool enable = true, string tag = "eyetrack")
     {
         _doWriteLabData = enable;
+        if (!string.IsNullOrEmpty(tag))
+        {
+            _currentEyeTrackTag = tag;
+        }
+    }
+
+    /// <summary>
+    /// 動態更改眼動資料寫入的 Tag
+    /// </summary>
+    /// <param name="tag">新的標籤名稱</param>
+    public void SetEyeTrackTag(string tag)
+    {
+        _currentEyeTrackTag = string.IsNullOrEmpty(tag) ? "eyetrack" : tag;
+        Debug.Log($"[EyeTrackManager] EyeTrack data tag dynamically changed to: {_currentEyeTrackTag}");
     }
 
     /// <summary>
