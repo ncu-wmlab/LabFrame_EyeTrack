@@ -42,7 +42,7 @@ public static class RegistryInstaller
         viveBranchCompiled = true;
     #endif
 
-        var pkg = PackageInfo.FindForAssetPath("Packages/com.htc.upm.wave.essence");
+        var pkg = UnityEditor.PackageManager.PackageInfo.FindForAssetPath("Packages/com.htc.upm.wave.essence");
         var pkgInfo = pkg == null ? "not found" : (pkg.name + "@" + pkg.version);
 
         Debug.Log("[EyeTrackDiag] BuildTargetGroup: " + buildTargetGroup);
