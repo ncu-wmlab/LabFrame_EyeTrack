@@ -5,7 +5,7 @@ using LabFrame2023;
 
 #if USE_PICO
 using Unity.XR.PXR;
-#elif USE_VIVE_ANDROID
+#elif USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
 using Wave.Essence.Eye;
 #endif
 
@@ -23,7 +23,7 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
     {
 #if USE_PICO
 
-#elif USE_VIVE_ANDROID
+#elif USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
         // 這裡要開啟眼動追蹤
         if(EyeManager.Instance != null)
         {
@@ -105,7 +105,7 @@ public class EyeTrackManager : LabSingleton<EyeTrackManager>, IManager
             else
                 _focusData = null;
         }
-#elif USE_VIVE_ANDROID
+#elif USE_VIVE_ANDROID && LABFRAME_WAVE_ESSENCE
         bool result = true;
 
         result &= EyeManager.Instance.GetLeftEyeOrigin(out var LeftEyePosition);//左眼位置

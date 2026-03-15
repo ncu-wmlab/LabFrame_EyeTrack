@@ -14,8 +14,8 @@
     "versionDefines": [
         {
             "name": "com.htc.upm.wave.essence",
-            "expression": "6.2.0-r9",
-            "define": "USE_VIVE_ANDROID"
+            "expression": "[6.2.0-r9,7.0.0)",
+            "define": "LABFRAME_WAVE_ESSENCE"
         }
     ],
     "noEngineReferences": false
